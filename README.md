@@ -6,7 +6,7 @@ Display a table from a mysql database that users can filter
 
 Usage:
 ======
-
+```
 <?php
 include_once("./showTable.php");
 
@@ -25,30 +25,17 @@ $showTable->setTableName("my_table_or_view");
 
 //set column names
 $showTable->setColumnNames(array(
-	"customerid" => "Customer Id", //csv.q2
-	"customername" => "Customer Name", //csv.q1
-	"branch" => "Branch", //b.name
-	"salesperson" => "Sales Person", //csv.q9
-	"driver" => "Driver", //csv.q10
-	"datesurveyed" => "Date Surveyed", //m.upload_date
-	"completed" => "Completed", //m.completed_date is not null
-	"datecompleted" => "Completed Date", //m.completed_date
-	"followupneeded" => "Followup Needed", //csv.q35 = 1 or csv.q38 = 1 or csv.q43 = 1
-	"datefollowedup" => "Followup Date", //csv.q42
-));
+	"id" => "Customer Id",
+	"date" => "Date Entered",
+	"name" => "Customer Name",
+	"active" => "Active"
 
 //set column types
 $showTable->setColumnTypes(array(
-	"customerid" => "string",
-	"customername" => "string",
-	"branch" => "string",
-	"salesperson" => "string",
-	"driver" => "string",
-	"datesurveyed" => "date",
-	"completed" => "boolean",
-	"datecompleted" => "date",
-	"followupneeded" => "boolean",
-	"datefollowedup" => "date",
+	"id" => "int",
+	"date" => "datetime",
+	"name" => "string",
+	"active" => "boolean"
 ));
 
 ?>
@@ -63,3 +50,4 @@ $showTable->setColumnTypes(array(
     <?= $showTable->printHTML() ?>
   </body>
 </html>
+```
