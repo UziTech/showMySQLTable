@@ -1,0 +1,127 @@
+fieldset{
+	text-align: left;
+}
+.bpar, .epar{
+	cursor: pointer;
+	background-color: #fff;
+	border: 0px none;
+	color: #ddd;
+}
+.bpar.checked, .epar.checked{
+	color: #000;
+	font-weight: bold;
+}
+.bpar:hover, .epar:hover{
+	color: #999;
+	font-weight: bold;
+}
+#filters * {
+	vertical-align: top;
+}
+.hidden{
+	visibility: hidden;
+}
+.expand{
+	cursor: pointer;
+}
+select{
+	padding: 1px;
+}
+#where select, #orderby select{
+	margin: 0 2px;
+}
+.where, .orderby{
+	margin: 2px 0;
+}
+#filters #selectField{
+	display: inline-block;
+	width: 45%;
+	float: left;
+}
+#select .column{
+	width: 100%;
+}
+#filters #orderbyField{
+	display: inline-block;
+	width: 45%;
+	float: right;
+}
+#filters #orderby, #filters #where{
+	text-align: center;
+}
+#filters #whereField{
+	clear: both;
+}
+#filters #buttons{
+	margin: 12px 0 0 20px;
+}
+#pagecontrols{
+	height: 26px;
+	margin: 10px;
+	text-align: right;
+}
+#pagecontrols button{
+	font-weight: bold;
+}
+#pagecontrols button:disabled{
+	opacity: .5;
+}
+#table table{
+	width: 100%;
+	table-layout: fixed;
+	white-space: nowrap;
+}
+#table .even{
+	background-color: #ddd;
+}
+#table th {
+	overflow: hidden; 
+	text-overflow: ellipsis;
+	background-color: #999;
+	border: 1px solid #000;
+}
+#table td {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	border: 1px solid #000;
+}
+#table .completed, #table .followupneeded{
+	width: 30px;
+}
+#table .customerid {
+	width: 65px;
+}
+.close{
+	display: inline-block;
+	width: 25px;
+	cursor: pointer;
+	font-weight: bold;
+	font-family: sans-serif;
+	font-size: 10px;
+	position: relative;
+	top: 4px;
+	text-align: center;
+}
+
+.close:hover{
+	font-size:15px;
+	top: 2px;
+	background-color: transparent;
+}
+#nosurveys {
+	background-color: #ddd;
+	padding: 10px;
+	border: 1px solid #000;
+}
+
+#where .value{
+	width: 160px;
+display: inline-block;
+height: 26px;
+}
+.error{
+	box-shadow: 0px 0px 3px 0px #f00
+}
+.val1, .val2{
+	width: 52px;
+}
