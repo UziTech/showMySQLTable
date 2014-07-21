@@ -1,6 +1,9 @@
 fieldset{
 	text-align: left;
 }
+textarea{
+	resize: vertical;
+}
 .bpar, .epar{
 	cursor: pointer;
 	background-color: #fff;
@@ -85,12 +88,6 @@ select{
 	text-overflow: ellipsis;
 	border: 1px solid #000;
 }
-#table .completed, #table .followupneeded{
-	width: 30px;
-}
-#table .customerid {
-	width: 65px;
-}
 .close{
 	display: inline-block;
 	width: 25px;
@@ -102,7 +99,6 @@ select{
 	top: 4px;
 	text-align: center;
 }
-
 .close:hover{
 	font-size:15px;
 	top: 2px;
@@ -113,7 +109,6 @@ select{
 	padding: 10px;
 	border: 1px solid #000;
 }
-
 #where .value{
 	width: 160px;
 display: inline-block;

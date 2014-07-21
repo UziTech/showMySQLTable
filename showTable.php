@@ -45,13 +45,15 @@ class showTable {
 	);
 	//class variables
 	private $table_name = null;
-	private $columns = null;
-	////string, date, time, datetime, boolean so far
+	private $column_names = null;
 	private $column_types = null;
+	private $default_columns = null;
+	private $id_column = null;
+	private $view_link = null;
 	private $inputs = null;
 	private $db = null;
 	private $table = null;
-	private $select = "*";
+	private $select = "";
 	private $orderby = "";
 	private $where = "";
 	private $whereParams = array();
@@ -78,23 +80,31 @@ class showTable {
 	}
 
 	public function setColumnNames($columnNames) {
-		$this->columns = $columnNames;
+		$this->column_names = $columnNames;
 	}
 
 	public function setColumnTypes($columnTypes) {
 		$this->column_types = $columnTypes;
 	}
 
+	public function setDefaultColumns($defaultColumns) {
+		$this->default_columns = $defaultColumns;
+	}
+
 	public function setTableName($tableName) {
 		$this->table_name = $tableName;
 	}
 
+	public function setViewLink($viewLink, $idColumn) {
+		$this->view_link = $viewLink;
+		$this->id_column = $idColumn;
+	}
+
 	private function getResults() {
-		//// validate $this->db, $this->columns, $this->column_types, $this->table_name
 		if (is_null($this->db)) {
 			throw new Exception("Database is not set");
 		}
-		if (is_null($this->columns)) {
+		if (is_null($this->column_names)) {
 			throw new Exception("Column names is not set");
 		}
 		if (is_null($this->column_types)) {
@@ -103,11 +113,14 @@ class showTable {
 		if (is_null($this->table_name)) {
 			throw new Exception("Table name is not set");
 		}
+		if (is_null($this->default_columns)) {
+			$this->default_columns = array_keys($this->column_names);
+		}
 		//sanitize $this->input["select"]
 		//should be an array of column names
 		if (!is_null($this->inputs["select"]) && $this->inputs["select"] !== false) {
 			for ($i = 0; $i < count($this->inputs["select"]); $i++) {
-				if (!isset($this->columns[$this->inputs["select"][$i]])) {
+				if (!isset($this->column_names[$this->inputs["select"][$i]])) {
 					goto SELECTERROR;
 				}
 			}
@@ -115,14 +128,17 @@ class showTable {
 		} else {
 			SELECTERROR:
 			$this->inputs["select"] = null;
+			$this->select = implode(", ", $this->default_columns);
 		}
-
+		if (!is_null($this->id_column) && stripos($this->select, $this->id_column) === false) {
+			$this->select .= ", " . $this->id_column;
+		}
 		//sanitize $this->input["orderby"]
 		//should be an array of strings in the format: 'columnName (ASC|DESC)'
 		if (!is_null($this->inputs["orderby"]) && $this->inputs["orderby"] !== false) {
 			for ($i = 0; $i < count($this->inputs["orderby"]); $i++) {
-				$orderSplit = split(" ", $this->inputs["orderby"][$i]);
-				if (count($orderSplit) !== 2 || !isset($this->columns[$orderSplit[0]]) || preg_match("/ASC|DESC/", $orderSplit[1]) === false) {
+				$orderSplit = split(" ", $this->inputs["orderby"][$i], 2);
+				if (count($orderSplit) !== 2 || !isset($this->column_names[$orderSplit[0]]) || !isset(self::$asc[$orderSplit[1]])) {
 					goto ORDERBYERROR;
 				}
 			}
@@ -159,7 +175,7 @@ class showTable {
 					goto WHEREERROR;
 				}
 				//column name
-				if (!isset($this->columns[$column])) {
+				if (!isset($this->column_names[$column])) {
 					goto WHEREERROR;
 				}
 				//operation
@@ -178,13 +194,40 @@ class showTable {
 				//check for boolean value
 				if ($this->column_types[$column] === "boolean") {
 					switch ($operation) {
+						case "isnotnull":
 						case "istrue":
 							$operation = "= 1";
 							$qmark = "";
 							break;
+						case "isnull":
 						case "isfalse":
 							$operation = "= 0";
 							$qmark = "";
+							break;
+						case "startswith":
+							$operation = "LIKE";
+							$this->whereParams[] = $this->db->likeEscape($value) . "%";
+							break;
+						case "endswith":
+							$operation = "LIKE";
+							$this->whereParams[] = "%" . $this->db->likeEscape($value);
+							break;
+						case "contains":
+							$operation = "LIKE";
+							$this->whereParams[] = "%" . $this->db->likeEscape($value) . "%";
+							break;
+						case "between":
+							$operation = "BETWEEN";
+							$valueSplit = split(" AND ", $value);
+							if (count($valueSplit) !== 2) {
+								goto WHEREERROR;
+							}
+							$this->whereParams[] = $valueSplit[0];
+							$this->whereParams[] = $valueSplit[1];
+							$qmark = "? AND ?";
+							break;
+						default:
+							$this->whereParams[] = $value;
 							break;
 					}
 				} else {
@@ -198,12 +241,12 @@ class showTable {
 							$qmark = "";
 							break;
 						case "istrue":
-							$operation = "=";
-							$this->whereParams[] = 1;
+							$operation = "= 1";
+							$qmark = "";
 							break;
 						case "isfalse":
-							$operation = "=";
-							$this->whereParams[] = 0;
+							$operation = "= 0";
+							$qmark = "";
 							break;
 						case "startswith":
 							$operation = "LIKE";
@@ -286,10 +329,10 @@ class showTable {
 			if (is_array($attributes)) {
 				foreach ($attributes as $attribute => $attrValue) {
 					if (is_array($attrValue)) {
-						if(isset($attrValue[$value])){
+						if (isset($attrValue[$value])) {
 							$attrs .= " {$attribute}='{$attrValue[$value]}'";
 						} else {
-							//$attrs .= " {$attribute}=''";////should the attribute be blank or just not include it?
+							//$attrs .= " {$attribute}=''";//TODO: should the attribute be blank or just not include it?
 						}
 					} else {
 						$attrs .= " {$attribute}='{$attrValue}'";
@@ -334,9 +377,9 @@ class showTable {
 
 //get html for select options
 	private function printShowColums() {
-		$selectedColumns = (is_null($this->inputs["select"]) ? array_keys($this->columns) : $this->inputs["select"]);
-		$html = "<select size='" . count($this->columns) . "' multiple class='column'>" .
-			$this->printOptions($this->columns, $selectedColumns) .
+		$selectedColumns = (is_null($this->inputs["select"]) ? array_keys($this->column_names) : $this->inputs["select"]);
+		$html = "<select size='" . count($this->column_names) . "' multiple class='column'>" .
+			$this->printOptions($this->column_names, $selectedColumns) .
 			"</select>";
 		return $html;
 	}
@@ -349,7 +392,7 @@ class showTable {
 				$orderSplit = split(" ", $orderby);
 				$html .= "<div class='orderby'>" .
 					"<select class='column'>" .
-					$this->printOptions($this->columns, $orderSplit[0]) .
+					$this->printOptions($this->column_names, $orderSplit[0]) .
 					"</select>" .
 					"<select class='asc'>" .
 					$this->printOptions(self::$asc, $orderSplit[1]) .
@@ -360,7 +403,7 @@ class showTable {
 		}
 		$html .= "<div class='orderby new'>" .
 			"<select class='column  defaultnull'>" .
-			$this->printOptions($this->columns) .
+			$this->printOptions($this->column_names) .
 			"</select>" .
 			"<select class='asc'>" .
 			$this->printOptions(self::$asc) .
@@ -388,7 +431,7 @@ class showTable {
 				$html .= "<div class='where" . ($lastWhere ? " new" : "") . "'>" .
 					"<button title='Toggle parenthesis' class='bpar" . ($bpar ? " checked" : "") . "'>(</button>" .
 					"<select class='column'>" .
-					$this->printOptions($this->columns, $column, array("data-type" => $this->column_types)) .
+					$this->printOptions($this->column_names, $column, array("data-type" => $this->column_types)) .
 					"</select>" .
 					"<select class='operation' data-val='{$dataVal}'>" .
 					$this->printOptions(self::$operations, $operation) .
@@ -420,7 +463,7 @@ class showTable {
 			$html .= "<div class='where new'>" .
 				"<button title='Toggle parenthesis' class='bpar'>(</button>" .
 				"<select class='column defaultnull'>" .
-				$this->printOptions($this->columns, null, array("data-type" => $this->column_types)) .
+				$this->printOptions($this->column_names, null, array("data-type" => $this->column_types)) .
 				"</select>" .
 				"<select class='operation  defaultnull' data-val=''>" .
 				$this->printOptions(self::$operations) .
@@ -442,21 +485,25 @@ class showTable {
 	private function printTable() {
 		if ($this->total > 0) {
 			$rownum = $this->start + 1;
-			$columnNames = null;
+			$columnNames = array();
 
+			//I only want the column names that are selected and in that order.
 			if (is_null($this->inputs["select"])) {
-				$columnNames = $this->columns;
+				foreach ($this->default_columns as $colomnName) {
+					$columnNames[$colomnName] = $this->column_names[$colomnName];
+				}
 			} else {
-				$columnNames = array();
-				//I only want the column names that are selected and in that order.
 				foreach ($this->inputs["select"] as $colomnName) {
-					$columnNames[$colomnName] = $this->columns[$colomnName];
+					$columnNames[$colomnName] = $this->column_names[$colomnName];
 				}
 			}
 
 			$html = "<table>" .
 				"<thead>" .
 				"<tr>";
+			if (isset($this->view_link, $this->id_column)) {
+				$html .= "<th class='view'>View</th>";
+			}
 			foreach ($columnNames as $columnName => $columnReadableName) {
 				$html .= "<th class='{$columnName}'>{$columnReadableName}</th>";
 			}
@@ -466,40 +513,49 @@ class showTable {
 			$odd = true;
 			foreach ($this->table as $row) {
 				$html .= "<tr class='" . ($odd ? "odd" : "even") . "'>";
+				if (isset($this->view_link, $this->id_column)) {
+					$html .= "<td class='view'><a href='{$this->view_link}?{$this->id_column}={$row[$this->id_column]}'>View</a></td>";
+				}
 				foreach (array_keys($columnNames) as $columnName) {
-					switch ($this->column_types[$columnName]) {////add more types?
-						case "boolean":
-							$html .= "<td class='{$columnName}'>" . ($row[$columnName] ? "&#10004;" : "") . "</td>"; //&#10004; is a check mark
-							break;
-						case "date":
-							$dateFormat = "";
-							if (!is_null($row[$columnName])) {
-								$date = new DateTime($row[$columnName]);
-								$dateFormat = $date->format("m/d/y");
+					$html .= "<td class='{$columnName}'>";
+					if (!is_null($row[$columnName])) {
+						if (is_array($this->column_types[$columnName])) {
+							$enum = $this->column_types[$columnName];
+							if(isset($enum[$row[$columnName]])){
+								$html .= $enum[$row[$columnName]];
+							} else {
+								//TODO: This should never happen. Maybe throw an error?
+								$html .= $row[$columnName];
 							}
-							$html .= "<td class='{$columnName}'>{$dateFormat}</td>";
-							break;
-						case "time":
-							$dateFormat = "";
-							if (!is_null($row[$columnName])) {
-								$date = new DateTime($row[$columnName]);
-								$dateFormat = $date->format("g:i A");
+						} else {
+							switch ($this->column_types[$columnName]) {//TODO: add more types?
+								case "boolean":
+									$html .= ($row[$columnName] ? "&#10004;" : ""); //&#10004; is a check mark
+									break;
+								case "date":
+									$date = new DateTime($row[$columnName]);
+									$html .= $date->format("m/d/y");
+									break;
+								case "time":
+									$date = new DateTime($row[$columnName]);
+									$html .= $date->format("g:i A");
+									break;
+								case "datetime":
+									$date = new DateTime($row[$columnName]);
+									$html .= $date->format("m/d/y g:i A");
+									break;
+								case "string":
+								default:
+									$html .= $row[$columnName];
+									break;
+								case "text":
+								default:
+									$html .= "<textarea readonly>{$row[$columnName]}</textarea>";
+									break;
 							}
-							$html .= "<td class='{$columnName}'>{$dateFormat}</td>";
-							break;
-						case "datetime":
-							$dateFormat = "";
-							if (!is_null($row[$columnName])) {
-								$date = new DateTime($row[$columnName]);
-								$dateFormat = $date->format("m/d/y g:i A");
-							}
-							$html .= "<td class='{$columnName}'>{$dateFormat}</td>";
-							break;
-						case "string":
-						default:
-							$html .= "<td class='{$columnName}'>{$row[$columnName]}</td>";
-							break;
+						}
 					}
+					$html .= "</td>";
 				}
 				$html .= "</tr>";
 				$rownum++;
@@ -513,18 +569,10 @@ class showTable {
 		}
 	}
 
-	private function printCSS() {
-		////
-	}
-
-	private function printJS() {
-		////
-	}
-
 	public function printHTML() {
 		$this->getResults();
 		$html = "<fieldset id='filtersField'>" .
-			"<legend><span class='expand no-select' data-down='<?= isFiltered() ?>' data-animating='false' >&#9650;</span>Filters</legend>" .
+			"<legend><span class='expand no-select' data-down='" . false/* $this->isFiltered() */ . "' data-animating='false' >&#9650;</span>Filters</legend>" .
 			"<div id='filters'>" .
 			"<fieldset id='selectField'>" .
 			"<legend>Show Columns</legend>" .

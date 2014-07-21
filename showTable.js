@@ -1,5 +1,5 @@
-////alert date format when #where .column changed to date column?
-////readable error messages
+//TODO: alert date format when #where .column changed to date column?
+//TODO: readable error messages
 
 //modified from http://weblog.west-wind.com/posts/2009/Sep/07/Get-and-Set-Querystring-Values-in-JavaScript
 function changeQueryString(key, value, query) {
@@ -131,8 +131,8 @@ $(function() {
 					break;
 				case "between":
 					value = $(".val1", $value).val() + " AND " + $(".val2", $value).val();
-					//// error if .val1 >= .val2?
-					//// cast date values?
+					//TODO: error if .val1 >= .val2?
+					//TODO: cast date values?
 					break;
 				case "isnull":
 				case "isnotnull":
@@ -145,7 +145,8 @@ $(function() {
 				if (parNest === 0) {
 					addError("missing beginning parenthesis to match", $epar);
 				}
-				epar = "(";
+				epar = ")";
+				parNest--;
 			}
 			if (parNest !== 0) {
 				addError("not enough beginning parentheses.", $(".bpar, .epar"));
@@ -218,6 +219,7 @@ $(function() {
 		}
 	});
 });
+//jquery plugin for showing tooltip on overflow
 (function($) {
 	'use strict';
 	$.fn.tooltipOnOverflow = function() {
