@@ -8,7 +8,7 @@ Usage:
 ======
 ```
 <?php
-include_once("./showTable.php");
+include_once("./showTable/showTable.php");
 
 $showTable = new showTable();
 
@@ -31,11 +31,15 @@ $showTable->setColumnNames(array(
 	"active" => "Active"
 
 //set column types
+$activeEnum = array(
+	"0" => "No",
+	"1" => "Yes",
+);
 $showTable->setColumnTypes(array(
 	"id" => "int",
 	"date" => "datetime",
 	"name" => "string",
-	"active" => "boolean"
+	"active" => $activeEnum
 ));
 
 //set default columns
@@ -49,10 +53,11 @@ $showTable->setColumnTypes(array(
 <html>
   <head>
     <title>My table</title>
-    <link rel='stylesheet' type='text/css' href='./showTable.css' />
-    <script type='text/javascript' src='./showTable.js'></script>
+    <link rel='stylesheet' type='text/css' href='./showTable/showTable.css' />
+    <script type='text/javascript' src='./showTable/showTable.js'></script>
   </head>
   <body>
+  	<?= $showTable->printFilters() ?>
     <?= $showTable->printHTML() ?>
   </body>
 </html>
