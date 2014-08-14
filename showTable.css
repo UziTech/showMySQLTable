@@ -1,8 +1,24 @@
 fieldset{
+	border: 1px solid #000;
+	border-radius: 3px;
+	margin-top: 10px;
+}
+legend{
+	float: left;
+	margin-top: -1em;
+	background-color: #fff;
+}
+legend + * {
+	clear: both;
+}
+#filtersField{
 	text-align: left;
 }
-textarea{
+#table textarea{
 	resize: vertical;
+	width: 95%;
+	width: calc(100% - 6px);
+	height: 100%;
 }
 .bpar, .epar{
 	cursor: pointer;
@@ -24,14 +40,16 @@ textarea{
 .hidden{
 	visibility: hidden;
 }
-.expand{
-	cursor: pointer;
-}
-select{
+#pagecontrols select{
 	padding: 1px;
 }
-#where select, #orderby select{
+#where select{
 	margin: 0 2px;
+	max-width: 190px;
+}
+#orderby select{
+	margin: 0 2px;
+	max-width: 150px;
 }
 .where, .orderby{
 	margin: 2px 0;
@@ -53,10 +71,13 @@ select{
 	text-align: center;
 }
 #filters #whereField{
-	clear: both;
+	float: left;
+	width: 96%;
+	width: calc(100% - 30px);
 }
 #filters #buttons{
-	margin: 12px 0 0 20px;
+	clear: both;
+	padding: 12px 0 0 20px;
 }
 #pagecontrols{
 	height: 26px;
@@ -111,12 +132,24 @@ select{
 }
 #where .value{
 	width: 160px;
-display: inline-block;
-height: 26px;
+	display: inline-block;
+	height: 26px;
+}
+#where .value input{
+	margin: 0px;
 }
 .error{
 	box-shadow: 0px 0px 3px 0px #f00
 }
 .val1, .val2{
 	width: 52px;
+}
+.links a{
+	display: block;
+	padding: 2px;
+	text-decoration: none;
+}
+.links a:hover{
+	text-decoration: underline;
+	background-color: transparent;
 }

@@ -49,7 +49,7 @@ class showTable {
 	private $column_types = null;
 	private $default_columns = null;
 	private $id_column = null;
-	private $view_link = null;
+	private $links = null;
 	private $inputs = null;
 	private $db = null;
 	private $table = null;
@@ -60,6 +60,7 @@ class showTable {
 	private $start = 0;
 	private $limit = 50;
 	private $total = 0;
+	private $haveResults = false;
 
 	public function __construct() {
 		$this->inputs = filter_input_array(INPUT_GET, self::$args);
@@ -72,9 +73,12 @@ class showTable {
 				"limit" => null,
 			);
 		}
-		array_walk($this->inputs, "trim_value");
 	}
 
+	/**
+	 * 
+	 * @param type $database
+	 */
 	public function setDatabase($database) {
 		$this->db = $database;
 	}
@@ -95,12 +99,15 @@ class showTable {
 		$this->table_name = $tableName;
 	}
 
-	public function setViewLink($viewLink, $idColumn) {
-		$this->view_link = $viewLink;
+	public function setLinks($links, $idColumn) {
+		$this->links = $links;
 		$this->id_column = $idColumn;
 	}
 
 	private function getResults() {
+		if ($this->haveResults) {
+			return;
+		}
 		if (is_null($this->db)) {
 			throw new Exception("Database is not set");
 		}
@@ -201,7 +208,8 @@ class showTable {
 							break;
 						case "isnull":
 						case "isfalse":
-							$operation = "= 0";
+							$operation = "({$column} = 0 OR {$column} IS NULL)";
+							$column = "";
 							$qmark = "";
 							break;
 						case "startswith":
@@ -298,19 +306,25 @@ class showTable {
 			$this->start = ((int) ($this->start / $this->limit)) * $this->limit;
 		}
 		//show results
-		$this->table = $this->db->execQuery("SELECT SQL_CALC_FOUND_ROWS {$this->select} FROM {$this->table_name}{$this->where}{$this->orderby} LIMIT {$this->start}, {$this->limit}", $this->whereParams);
-		if ($this->table !== false) {
-			$this->total = $this->db->lastRowCount();
+		$this->table = $this->db->prepare("SELECT SQL_CALC_FOUND_ROWS {$this->select} FROM {$this->table_name}{$this->where}{$this->orderby} LIMIT {$this->start}, {$this->limit}");
+		if ($this->table->execute($this->whereParams)) {
+			$this->total = (int) $this->db->query("SELECT FOUND_ROWS()")->fetchColumn();
 		}
 
 		if ($this->start >= $this->total) {
 			//set $this->start to beginning of last page
 			$this->start = ((int) (($this->total - 1) / $this->limit)) * $this->limit;
 			if ($this->total > 0) {
-				$this->table = $this->db->execQuery("SELECT SQL_CALC_FOUND_ROWS {$this->select} FROM {$this->table_name}{$this->where}{$this->orderby} LIMIT {$this->start}, {$this->limit}", $this->whereParams);
-				$this->total = $this->db->lastRowCount();
+				$this->table = $this->db->prepare("SELECT SQL_CALC_FOUND_ROWS {$this->select} FROM {$this->table_name}{$this->where}{$this->orderby} LIMIT {$this->start}, {$this->limit}");
+				if ($this->table->execute($this->whereParams)) {
+					$this->total = (int) $this->db->query("SELECT FOUND_ROWS()")->fetchColumn();
+				} else {
+					$error = $this->table->errorInfo();
+					throw new Exception("{$error[2]}\nSELECT SQL_CALC_FOUND_ROWS {$this->select} FROM {$this->table_name}{$this->where}{$this->orderby} LIMIT {$this->start}, {$this->limit}\n" . print_r($this->whereParams, true));
+				}
 			}
 		}
+		$this->haveResults = true;
 	}
 
 	public function isFiltered() {
@@ -319,6 +333,7 @@ class showTable {
 
 	//get html for options from array with optionally choosing which ones are selected
 	private function printOptions($options, $selected = null, $attributes = null) {
+
 		$html = "";
 		foreach ($options as $value => $label) {
 			$select = "";
@@ -330,9 +345,13 @@ class showTable {
 				foreach ($attributes as $attribute => $attrValue) {
 					if (is_array($attrValue)) {
 						if (isset($attrValue[$value])) {
-							$attrs .= " {$attribute}='{$attrValue[$value]}'";
+							if (is_array($attrValue[$value])) {
+								$attrs .= " {$attribute}='enum:" . implode(",", $attrValue[$value]) . "'";
+							} else {
+								$attrs .= " {$attribute}='{$attrValue[$value]}'";
+							}
 						} else {
-							//$attrs .= " {$attribute}=''";//TODO: should the attribute be blank or just not include it?
+							//$attrs .= " {$attribute}=''";//PENDING: should the attribute be blank or just not include it?
 						}
 					} else {
 						$attrs .= " {$attribute}='{$attrValue}'";
@@ -377,9 +396,9 @@ class showTable {
 
 //get html for select options
 	private function printShowColums() {
-		$selectedColumns = (is_null($this->inputs["select"]) ? array_keys($this->column_names) : $this->inputs["select"]);
-		$html = "<select size='" . count($this->column_names) . "' multiple class='column'>" .
-			$this->printOptions($this->column_names, $selectedColumns) .
+		$selectedColumns = (is_null($this->inputs["select"]) ? $this->default_columns : $this->inputs["select"]);
+		$html = "<select size='" . (count($this->column_names) > 10 ? 10 : count($this->column_names)) . "' multiple class='column'>" .
+			$this->printOptions($this->column_names, $selectedColumns, array("data-default" => array_fill_keys($this->default_columns, 1))) .
 			"</select>";
 		return $html;
 	}
@@ -501,8 +520,8 @@ class showTable {
 			$html = "<table>" .
 				"<thead>" .
 				"<tr>";
-			if (isset($this->view_link, $this->id_column)) {
-				$html .= "<th class='view'>View</th>";
+			if (isset($this->links, $this->id_column)) {
+				$html .= "<th class='links'>Links</th>";
 			}
 			foreach ($columnNames as $columnName => $columnReadableName) {
 				$html .= "<th class='{$columnName}'>{$columnReadableName}</th>";
@@ -513,22 +532,30 @@ class showTable {
 			$odd = true;
 			foreach ($this->table as $row) {
 				$html .= "<tr class='" . ($odd ? "odd" : "even") . "'>";
-				if (isset($this->view_link, $this->id_column)) {
-					$html .= "<td class='view'><a href='{$this->view_link}?{$this->id_column}={$row[$this->id_column]}'>View</a></td>";
+				if (isset($this->links, $this->id_column)) {
+					$html .= "<td class='links'>";
+					if (is_array($this->links)) {
+						foreach ($this->links as $name => $link) {
+							$html .= "<a href='{$link}?{$this->id_column}={$row[$this->id_column]}'>{$name}</a>";
+						}
+					} else {
+						$html .= "<a href='{$this->links}?{$this->id_column}={$row[$this->id_column]}'>View</a>";
+					}
+					$html .= "</td>";
 				}
 				foreach (array_keys($columnNames) as $columnName) {
 					$html .= "<td class='{$columnName}'>";
 					if (!is_null($row[$columnName])) {
 						if (is_array($this->column_types[$columnName])) {
 							$enum = $this->column_types[$columnName];
-							if(isset($enum[$row[$columnName]])){
+							if (isset($enum[$row[$columnName]])) {
 								$html .= $enum[$row[$columnName]];
 							} else {
-								//TODO: This should never happen. Maybe throw an error?
+								//PENDING: This should never happen. Maybe throw an error?
 								$html .= $row[$columnName];
 							}
 						} else {
-							switch ($this->column_types[$columnName]) {//TODO: add more types?
+							switch ($this->column_types[$columnName]) {//PENDING: add more types?
 								case "boolean":
 									$html .= ($row[$columnName] ? "&#10004;" : ""); //&#10004; is a check mark
 									break;
@@ -569,10 +596,11 @@ class showTable {
 		}
 	}
 
-	public function printHTML() {
+	public function printFilters() {
 		$this->getResults();
+
 		$html = "<fieldset id='filtersField'>" .
-			"<legend><span class='expand no-select' data-down='" . false/* $this->isFiltered() */ . "' data-animating='false' >&#9650;</span>Filters</legend>" .
+			"<legend>Filters</legend>" .
 			"<div id='filters'>" .
 			"<fieldset id='selectField'>" .
 			"<legend>Show Columns</legend>" .
@@ -597,8 +625,15 @@ class showTable {
 			"<button type='button' id='reset'>reset</button>" .
 			"</div>" .
 			"</div>" .
-			"</fieldset>" .
-			"<div id='pagecontrols'>" .
+			"</fieldset>";
+
+		return $html;
+	}
+
+	public function printHTML() {
+		$this->getResults();
+
+		$html = "<div id='pagecontrols'>" .
 			$this->printPageControls() .
 			"</div>" .
 			"<div id='table'>" .

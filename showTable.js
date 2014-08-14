@@ -1,5 +1,5 @@
-//TODO: alert date format when #where .column changed to date column?
-//TODO: readable error messages
+//PENDING: alert date format when #where .column changed to date column?
+//PENDING: readable error messages
 
 //modified from http://weblog.west-wind.com/posts/2009/Sep/07/Get-and-Set-Querystring-Values-in-JavaScript
 function changeQueryString(key, value, query) {
@@ -34,25 +34,52 @@ $(function() {
 	$("select.defaultnull").each(function(index, element) {
 		$(element).val("").removeClass("defaultnull");
 	});
-	$("#orderby .new .column, #where .new .and").change(function() {
+	$("#orderby .new .column").change(function() {
 		var $parent = $(this).parent();
 		var $new = $parent.clone(true).insertAfter($parent);
 		$parent.removeClass("new");
-		$(".bpar, .epar", $new).removeClass("checked");
 		$("select", $new).val("");
-		$(".value", $new).html("<input type='text' class='val' />");
 		$(".asc", $new).val("ASC");
 		$(this).unbind("change");
 	});
-	$("#orderby, #where").click(function(e) {
+	$("#where .and").change(function() {
+		var $parent = $(this).parent();
+		if($parent.hasClass("new")){
+			var $new = $parent.clone(true).insertAfter($parent);
+			$parent.removeClass("new");
+			$(".bpar, .epar", $new).removeClass("checked");
+			$("select", $new).val("");
+			$(".value", $new).html("<input type='text' class='val' />");
+		}
+	});
+	$("#orderby").click(function(e) {
 		var $target = $(e.target);
 		if ($target.hasClass("close")) {
-			$parent = $target.parent().parent();
+			var $parent = $target.parent().parent();
 			if ($parent.hasClass("new")) {
-				$(".bpar, .epar", $parent).removeClass("checked");
-				$(".value", $parent).html("<input type='text' class='val'>");
 				$("select", $parent).val("");
 				$(".asc", $parent).val("ASC");
+			} else {
+				$parent.remove();
+			}
+		}
+	});
+	$("#where").click(function(e) {
+		var $target = $(e.target);
+		if ($target.hasClass("close")) {
+			var $parent = $target.parent().parent();
+			if ($parent.hasClass("new")) {
+				if($parent.prev().length === 0){
+					$(".bpar, .epar", $parent).removeClass("checked");
+					$(".value", $parent).html("<input type='text' class='val'>");
+					$("select", $parent).val("");
+					$(".asc", $parent).val("ASC");
+				} else {
+					var $prev = $parent.prev();
+					$prev.addClass("new");
+					$(".and", $prev).val("");
+					$parent.remove();
+				}
 			} else {
 				$parent.remove();
 			}
@@ -88,6 +115,11 @@ $(function() {
 
 			vars.orderby.push(column + " " + asc);
 		});
+		
+		//counts nested parentheses.
+		//If an ending parenthesis shows up with out a beginning parenthesis than an error is thrown.
+		//If there are more beginning parentheses than ending parentheses than an error is thrown.
+		var parNest = 0;
 		$(".where").each(function(i, element) {
 			var isLast = $(this).hasClass("new");
 			var useLast = true;
@@ -104,10 +136,6 @@ $(function() {
 			var epar = "";
 			var and = $and.val();
 
-			//counts nested parentheses.
-			//If an ending parenthesis shows up with out a beginning parenthesis than an error is thrown.
-			//If there are more beginning parentheses than ending parentheses than an error is thrown.
-			var parNest = 0;
 
 			//validation
 			if ($bpar.hasClass("checked")) {
@@ -131,8 +159,7 @@ $(function() {
 					break;
 				case "between":
 					value = $(".val1", $value).val() + " AND " + $(".val2", $value).val();
-					//TODO: error if .val1 >= .val2?
-					//TODO: cast date values?
+					//PENDING: error if .val1 >= .val2?
 					break;
 				case "isnull":
 				case "isnotnull":
@@ -148,13 +175,13 @@ $(function() {
 				epar = ")";
 				parNest--;
 			}
-			if (parNest !== 0) {
-				addError("not enough beginning parentheses.", $(".bpar, .epar"));
-			}
 			if (!isLast || useLast) {
 				vars.where.push(bpar, column, operation, value, epar, and);
 			}
 		});
+		if (parNest !== 0) {
+			addError("not enough beginning parentheses.", $(".bpar, .epar"));
+		}
 		if (errors.length === 0) {
 			location.href = "?" + $.param(vars);
 		} else {
@@ -190,33 +217,8 @@ $(function() {
 	});
 	$("#reset").click(function() {
 		$(".close").click();
-		$("#select .column option").prop("selected", true);
-	});
-	if (!$(".expand").data("down")) {
-		$("#filters").hide();
-		$(".expand").html("&#9660;");
-	}
-	$(".expand").click(function() {
-		var $this = $(this);
-		if (!$this.data("animating")) {
-			if ($this.data("down")) {
-				$this.data("down", false).html("&#9660;");
-				$this.data("animating", true);
-				$("#filters").slideUp({
-					complete: function() {
-						$(".expand").data("animating", false);
-					}
-				});
-			} else {
-				$this.data("down", true).html("&#9650;");
-				$this.data("animating", true);
-				$("#filters").slideDown({
-					complete: function() {
-						$(".expand").data("animating", false);
-					}
-				});
-			}
-		}
+		$("#select .column option").prop("selected", false);
+		$("#select .column option[data-default=1]").prop("selected", true);
 	});
 });
 //jquery plugin for showing tooltip on overflow

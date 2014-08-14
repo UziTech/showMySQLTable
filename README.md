@@ -38,6 +38,12 @@ $showTable->setColumnTypes(array(
 	"active" => "boolean"
 ));
 
+//set default columns
+$showTable->setColumnTypes(array(
+	"name",
+	"date"
+));
+
 ?>
 <!DOCTYPE html>
 <html>
