@@ -64,7 +64,7 @@ class showTable {
 
 	public function __construct() {
 		$this->inputs = filter_input_array(INPUT_GET, self::$args);
-		if (is_null($this->inputs)) {
+		if ($this->inputs === null) {
 			$this->inputs = array(
 				"select" => null,
 				"orderby" => null,
@@ -108,24 +108,24 @@ class showTable {
 		if ($this->haveResults) {
 			return;
 		}
-		if (is_null($this->db)) {
+		if ($this->db === null) {
 			throw new Exception("Database is not set");
 		}
-		if (is_null($this->column_names)) {
+		if ($this->column_names === null) {
 			throw new Exception("Column names is not set");
 		}
-		if (is_null($this->column_types)) {
-			throw new Exception("Column types is not set");
+		if ($this->column_types === null) {
+			$this->column_types = array_fill_keys(array_keys($this->column_names), "string");
 		}
-		if (is_null($this->table_name)) {
+		if ($this->table_name === null) {
 			throw new Exception("Table name is not set");
 		}
-		if (is_null($this->default_columns)) {
+		if ($this->default_columns === null) {
 			$this->default_columns = array_keys($this->column_names);
 		}
-		//sanitize $this->input["select"]
+		//sanitize $this->inputs["select"]
 		//should be an array of column names
-		if (!is_null($this->inputs["select"]) && $this->inputs["select"] !== false) {
+		if ($this->inputs["select"] !== null && $this->inputs["select"] !== false) {
 			for ($i = 0; $i < count($this->inputs["select"]); $i++) {
 				if (!isset($this->column_names[$this->inputs["select"][$i]])) {
 					goto SELECTERROR;
@@ -140,9 +140,9 @@ class showTable {
 		if (!is_null($this->id_column) && stripos($this->select, $this->id_column) === false) {
 			$this->select .= ", " . $this->id_column;
 		}
-		//sanitize $this->input["orderby"]
+		//sanitize $this->inputs["orderby"]
 		//should be an array of strings in the format: 'columnName (ASC|DESC)'
-		if (!is_null($this->inputs["orderby"]) && $this->inputs["orderby"] !== false) {
+		if ($this->inputs["orderby"] !== null && $this->inputs["orderby"] !== false) {
 			for ($i = 0; $i < count($this->inputs["orderby"]); $i++) {
 				$orderSplit = split(" ", $this->inputs["orderby"][$i], 2);
 				if (count($orderSplit) !== 2 || !isset($this->column_names[$orderSplit[0]]) || !isset(self::$asc[$orderSplit[1]])) {
@@ -155,18 +155,18 @@ class showTable {
 			$this->inputs["orderby"] = null;
 		}
 
-		//sanitize $this->input["where"]
+		//sanitize $this->inputs["where"]
 		//should be an array of strings in the format: 
 		//array(
 		//	[0] => "^(?$",
-		//	[1] => "columnName",
-		//	[2] => "(=|!=|LIKE|>|<|<=|>=)",
-		//	[3] => "%?value%?",
+		//	[1] => "^columnName$",
+		//	[2] => "^(=|!=|>|<|<=|>=|between|contains|(starts|ends)with|is((not)?null|true|false))$",
+		//	[3] => "^value$",
 		//	[4] => "^)?$",
-		//	[5] => "^(AND|OR)?$",
+		//	[5] => "^(AND|OR|XOR)?$",
 		//	...
 		//);
-		if (!is_null($this->inputs["where"]) && $this->inputs["where"] !== false && count($this->inputs["where"]) % 6 === 0) {
+		if ($this->inputs["where"] !== null && $this->inputs["where"] !== false && count($this->inputs["where"]) % 6 === 0) {
 			$whereString = "";
 			for ($i = 0; $i < count($this->inputs["where"]); $i += 6) {
 				$bpar = $this->inputs["where"][$i];
@@ -214,15 +214,15 @@ class showTable {
 							break;
 						case "startswith":
 							$operation = "LIKE";
-							$this->whereParams[] = $this->db->likeEscape($value) . "%";
+							$this->whereParams[] = str_replace("%", "\\%", $value) . "%";
 							break;
 						case "endswith":
 							$operation = "LIKE";
-							$this->whereParams[] = "%" . $this->db->likeEscape($value);
+							$this->whereParams[] = "%" . str_replace("%", "\\%", $value);
 							break;
 						case "contains":
 							$operation = "LIKE";
-							$this->whereParams[] = "%" . $this->db->likeEscape($value) . "%";
+							$this->whereParams[] = "%" . str_replace("%", "\\%", $value) . "%";
 							break;
 						case "between":
 							$operation = "BETWEEN";
@@ -249,12 +249,12 @@ class showTable {
 							$qmark = "";
 							break;
 						case "istrue":
-							$operation = "= 1";
-							$qmark = "";
+							$operation = "=";
+							$this->whereParams[] = "1";
 							break;
 						case "isfalse":
-							$operation = "= 0";
-							$qmark = "";
+							$operation = "=";
+							$this->whereParams[] = "0";
 							break;
 						case "startswith":
 							$operation = "LIKE";
@@ -328,12 +328,12 @@ class showTable {
 	}
 
 	public function isFiltered() {
-		return !is_null($this->inputs["select"]) || !is_null($this->inputs["orderby"]) || !is_null($this->inputs["where"]);
+		$this->getResults();
+		return $this->inputs["select"] !== null || $this->inputs["orderby"] !== null || $this->inputs["where"] !== null;
 	}
 
-	//get html for options from array with optionally choosing which ones are selected
+	//get html for options from array with optionally choosing which ones are selected and which ones have attributes
 	private function printOptions($options, $selected = null, $attributes = null) {
-
 		$html = "";
 		foreach ($options as $value => $label) {
 			$select = "";
