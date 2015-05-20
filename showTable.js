@@ -93,7 +93,8 @@ $(function() {
 		var vars = {
 			select: new Array(),
 			orderby: new Array(),
-			where: new Array()
+			where: new Array(),
+			limit: parseInt($("#limit").val(), 10)
 		};
 		var errors = new Array();
 		var addError = function(err, $element) {
@@ -134,7 +135,7 @@ $(function() {
 			var operation = $operation.val();
 			var value = "";
 			var epar = "";
-			var and = $and.val();
+			var and = $and.val() || "";
 
 
 			//validation
@@ -181,6 +182,9 @@ $(function() {
 		});
 		if (parNest !== 0) {
 			addError("not enough beginning parentheses.", $(".bpar, .epar"));
+		}
+		if(isNaN(vars.limit)){
+			addError("must be a number", $("#limit"));
 		}
 		if (errors.length === 0) {
 			location.href = "?" + $.param(vars);
