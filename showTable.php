@@ -20,6 +20,7 @@ class showTable {
 		"contains" => "contains",
 		"doesnotcontain" => "does not contain",
 		"between" => "is between",
+		"notbetween" => "is not between",
 	);
 	private static $ands = array(
 		"AND" => "AND",
@@ -240,6 +241,16 @@ class showTable {
 							$this->whereParams[] = $valueSplit[1];
 							$qmark = "? AND ?";
 							break;
+						case "notbetween":
+							$operation = "NOT BETWEEN";
+							$valueSplit = explode(" AND ", $value);
+							if (count($valueSplit) !== 2) {
+								return false;
+							}
+							$this->whereParams[] = $valueSplit[0];
+							$this->whereParams[] = $valueSplit[1];
+							$qmark = "? AND ?";
+							break;
 						default:
 							$this->whereParams[] = $value;
 							break;
@@ -288,6 +299,16 @@ class showTable {
 							break;
 						case "between":
 							$operation = "BETWEEN";
+							$valueSplit = explode(" AND ", $value);
+							if (count($valueSplit) !== 2) {
+								return false;
+							}
+							$this->whereParams[] = $valueSplit[0];
+							$this->whereParams[] = $valueSplit[1];
+							$qmark = "? AND ?";
+							break;
+						case "notbetween":
+							$operation = "NOT BETWEEN";
 							$valueSplit = explode(" AND ", $value);
 							if (count($valueSplit) !== 2) {
 								return false;
@@ -526,7 +547,7 @@ class showTable {
 				$epar = $whereArray[$i + 4] === ")";
 				$and = $whereArray[$i + 5];
 				$lastWhere = ($i === count($whereArray) - 6);
-				$dataVal = ($operation === "between" ? explode(" AND ", $value, 2)[0] : $value);
+				$dataVal = ($operation === "between" || $operation === "notbetween" ? explode(" AND ", $value, 2)[0] : $value);
 
 				$html .= "<div class='where" . ($lastWhere ? " new" : "") . "'>" .
 					"<button title='Toggle parenthesis' class='bpar" . ($bpar ? " checked" : "") . "'>(</button>" .
@@ -544,6 +565,7 @@ class showTable {
 					case "isfalse":
 						break;
 					case "between":
+					case "notbetween":
 						$valueSplit = explode(" AND ", $value, 2);
 						$html .= "<input type='text' class='val1' value='" . $valueSplit[0] . "' /> AND <input type='text' class='val2' value='" . $valueSplit[1] . "' />";
 						break;

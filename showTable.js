@@ -159,6 +159,7 @@ $(function() {
 					}
 					break;
 				case "between":
+				case "notbetween":
 					value = $(".val1", $value).val() + " AND " + $(".val2", $value).val();
 					//PENDING: error if .val1 >= .val2?
 					break;
@@ -206,6 +207,7 @@ $(function() {
 
 		switch ($this.val()) {
 			case "between":
+			case "notbetween":
 				$value.html("<input type='text' class='val1' value='' /> AND <input type='text' class='val2' />");
 				break;
 			case "isnull":
@@ -220,9 +222,10 @@ $(function() {
 		}
 	});
 	$("#reset").click(function() {
-		$(".close").click();
-		$("#select .column option").prop("selected", false);
-		$("#select .column option[data-default=1]").prop("selected", true);
+		location.search = "";
+//		$(".close").click();
+//		$("#select .column option").prop("selected", false);
+//		$("#select .column option[data-default=1]").prop("selected", true);
 	});
 });
 //jquery plugin for showing tooltip on overflow
